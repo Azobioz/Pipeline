@@ -3,7 +3,7 @@ name: Run JUnit Tests and Add Label
 on:
   pull_request:
     branches:
-      - master  # Укажите вашу основную ветку
+      - master  # Основная ветка
 
 # Задачи
 jobs:
