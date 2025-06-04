@@ -1,4 +1,4 @@
-name: Run JUnit Tests and Add Label
+name: Run JUnit tests and add PR test-passed
 
 on:
   pull_request:
