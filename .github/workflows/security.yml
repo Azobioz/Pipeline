@@ -1,0 +1,37 @@
+name: Run JUnit tests and add PR test-passed
+
+on:
+  pull_request:
+    branches:
+      - master  # Основная ветка
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        # Клонирует репозиторий на виртуальную машину
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        # Действие actions/setup-java@v4 для установки JDK.
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Run Dependency-Check
+        run: mvn org.owasp:dependency-check-maven:check
+
+      - name: Add sec-passed label to pull request
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['sec-passed']
+            })
