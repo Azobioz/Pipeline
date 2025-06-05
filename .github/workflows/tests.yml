@@ -41,3 +41,34 @@ jobs:
               issue_number: context.payload.pull_request.number,
               labels: ['test-passed']
             })
+
+  # Проверка на безопасность с CodeQL
+  security-check:
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: Checkout code
+        # Клонирует репозиторий на виртуальную машину
+        uses: actions/checkout@v4
+  
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: java, kotlin 
+  
+      - name: Perform CodeQL analysis
+        # Выполняет анализ кода и генерирует отчет.
+        uses: github/codeql-action/analyze@v2
+  
+      - name: Add sec-passed label to PR
+        if: success()
+        # Использует действие actions/github-script@v6 для выполнения  JS кода в script:
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ['sec-passed']
+            })
