@@ -69,8 +69,12 @@ jobs:
       # Коммит изменений в version и version_log 
       - name: Commit version updates
         if: steps.update-type.outputs.update_type != 'none'
+          # git config --global user.name 'github-actions[bot]' Git требует, чтобы пользователь был указан.
+          # git config --global user.email 'github-actions[bot]@users.noreply.github.com' Git требует, чтобы почта была указана.
           # git commit -m "${{ steps.last-log.outputs.last_log }}" Создаёт коммит с сообщением, равным последней строке из version_log
         run: |
+          git config --global user.name 'bot'
+          git config --global user.email 'bot1@github.com'
           git add version version_log
           git commit -m "${{ steps.last-log.outputs.last_log }}"
           git push
