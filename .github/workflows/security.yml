@@ -1,4 +1,4 @@
-name: Run JUnit tests and add PR test-passed
+name: Run security check
 
 on:
   pull_request:
