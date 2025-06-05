@@ -25,13 +25,16 @@ jobs:
 
       - name: Build with maven
         # Добавляет шаг сборки проекта на maven
-        run: mvn clean install -DskipTests
+        run: mvn clean install 
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: java
 
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      
       - name: Perform CodeQL analysis
         # Выполняет анализ кода и генерирует отчет.
         uses: github/codeql-action/analyze@v2
