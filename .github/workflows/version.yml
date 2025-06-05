@@ -14,20 +14,33 @@ jobs:
 
     steps:
       - name: Checkout repository
+        # Клонирует репозиторий
         uses: actions/checkout@v4
         with:
+          # Клонировать полную историю репозитория чтобы можно было получить доступ к истории коммитов
           fetch-depth: 0
+          # Переменная github.head_ref указывает на исходную ветку пул-реквеста. Все изменения будут применяться к этой ветке, а не к временной мёрдж-ветке.
           ref: ${{ github.head_ref || github.ref }}
 
+      # Установка Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # Определение типа обновления на основе коммит-сообщения 
       - name: Determine update type
+        # Присваивает шагу идентификатор update-type, чтобы его выходные данные можно было использовать в других шагах
         id: update-type
+        # Выполняет bash-скрипт:
+        # LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B) Получает сообщение последнего коммита с помощью git log. Опция --pretty=%B извлекает только тело сообщения.
+        # if [[ "$LAST_COMMIT_MESSAGE" == *"feature"* ]]; then Проверяет, содержит ли сообщение коммита слово feature.
+        # echo "update_type=minor" >> $GITHUB_OUTPUT Если слово feature найдено, записывает update_type=minor в $GITHUB_OUTPUT для передачи в следующий шаг.
+        # elif [[ "$LAST_COMMIT_MESSAGE" == *"hotfix"* ]]; then Проверяет, содержит ли сообщение слово hotfix.
+        # echo "update_type=patch" >> $GITHUB_OUTPUT Если слово hotfix найдено, записывает update_type=patch.
+        # echo "update_type=none" >> $GITHUB_OUTPUT Записывает update_type=none, чтобы пропустить обновление версии.
         run: |
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B) 
           if [[ "$LAST_COMMIT_MESSAGE" == *"feature"* ]]; then
             echo "update_type=minor" >> $GITHUB_OUTPUT
           elif [[ "$LAST_COMMIT_MESSAGE" == *"hotfix"* ]]; then
@@ -36,24 +49,15 @@ jobs:
             echo "update_type=none" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run versioning script for push
-        if: github.event_name == 'push' && steps.update-type.outputs.update_type != 'none'
+      # Выполнение Python-скрипта для обновления версии, если тип обновления определён
+      - name: Run version update script
+        # Условие — шаг выполняется только если update_type не равно none.
+        if: steps.update-type.outputs.update_type != 'none'
+        # Передаёт значение update_type (например, minor или patch) в Python-скрипт version_up.py через стандартный ввод.
         run: |
           echo "${{ steps.update-type.outputs.update_type }}" | python version_up.py
 
-      - name: Initialize or update version for PR
-        if: github.event_name == 'pull_request'
-        run: |
-          # Инициализация или обновление version и version_log
-          if [ ! -f version ]; then
-            echo "1.0.0" > version
-          fi
-          if [ ! -f version_log ]; then
-            touch version_log
-          fi
-          UPDATE_TYPE=${{ steps.update-type.outputs.update_type }}
-          echo "$UPDATE_TYPE" | python version_up.py
-
+      # Чтение последней строки из version_log для сообщения коммита 
       - name: Get last version log entry
         id: last-log
         run: |
@@ -64,25 +68,34 @@ jobs:
             echo "last_log=$LAST_LOG" >> $GITHUB_OUTPUT
           fi
 
+      # Коммит изменений в version и version_log 
       - name: Commit version updates
-        if: github.event_name == 'push' && steps.update-type.outputs.update_type != 'none' || github.event_name == 'pull_request'
+        if: steps.update-type.outputs.update_type != 'none'
+          # git config --global user.name 'github-actions[bot]' Git требует, чтобы пользователь был указан.
+          # git config --global user.email 'github-actions[bot]@users.noreply.github.com' Git требует, чтобы почта была указана.
+          # git commit -m "${{ steps.last-log.outputs.last_log }}" Создаёт коммит с сообщением, равным последней строке из version_log
+          # git push origin ${{ github.head_ref }} Это отправляет изменения обратно в исходную ветку, а не в целевую
         run: |
           git config --global user.name 'bot'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.email 'bot1@github.com'
           git add version version_log
-          git commit -m "${{ steps.last-log.outputs.last_log }}" || echo "No changes to commit"
-          git push origin ${{ github.head_ref || github.ref_name }}
+          git commit -m "${{ steps.last-log.outputs.last_log }}"
+          git push origin ${{ github.head_ref }}
 
+      # Чтение новой версии из version_log и установка лейбла на PR 
       - name: Add new version label to PR
+        # Выполняется, только если событие — пул-реквест.
         if: github.event_name == 'pull_request'
+        # NEW_VERSION=$(cat version) NEW_VERSION=$(...): Результат выполнения cat version сохраняется в переменную NEW_VERSIO, cat version Читает содержимое файла version,
+        #  gh pr edit ${{ github.event.pull_request.number }} --add-label "version-$NEW_VERSION" Использует утилиту gh (GitHub CLI) для редактирования пул-реквеста, 
+        # ${{ github.event.pull_request.number }} это переменная из контекста GitHub Actions, которая содержит номер текущего пул-реквеста . Это позволяет указать, к какому именно PR применять изменения,
+        # --add-label "$NEW_VERSION" создает лайбл со значением из NEW_VERSION
         run: |
-          if [ ! -f version ]; then
-            echo "1.0.0" > version
-            git add version
-            git commit -m "Initialize version file"
-            git push origin ${{ github.head_ref }}
-          fi
           NEW_VERSION=$(cat version)
-          gh pr edit ${{ github.event.pull_request.number }} --add-label "version-$NEW_VERSION"
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "$NEW_VERSION"
+        # Определяет переменные окружения, которые будут доступны во время выполнения команд в блоке run.
+        # GITHUB_TOKEN: устанавливает переменную окружения
+        # ${{ secrets.GITHUB_TOKEN }}: Переменная, предоставляемая GitHub Actions автоматически. Это токен с правами на выполнение операций в репозитории (например, редактирование пул-реквестов). Он нужен для аутентификации команды gh pr edit,
+        # чтобы GitHub CLI мог взаимодействовать с API GitHub.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
