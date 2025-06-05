@@ -19,6 +19,8 @@ jobs:
         with:
           # Клонировать полную историю репозитория чтобы можно было получить доступ к истории коммитов
           fetch-depth: 0
+          # Переменная github.head_ref указывает на исходную ветку пул-реквеста. Все изменения будут применяться к этой ветке, а не к временной мёрдж-ветке.
+          ref: ${{ github.head_ref }}
 
       # Установка Python
       - name: Set up Python
@@ -72,12 +74,13 @@ jobs:
           # git config --global user.name 'github-actions[bot]' Git требует, чтобы пользователь был указан.
           # git config --global user.email 'github-actions[bot]@users.noreply.github.com' Git требует, чтобы почта была указана.
           # git commit -m "${{ steps.last-log.outputs.last_log }}" Создаёт коммит с сообщением, равным последней строке из version_log
+          # git push origin ${{ github.head_ref }} Это отправляет изменения обратно в исходную ветку, а не в целевую
         run: |
           git config --global user.name 'bot'
           git config --global user.email 'bot1@github.com'
           git add version version_log
           git commit -m "${{ steps.last-log.outputs.last_log }}"
-          git push
+          git push origin ${{ github.head_ref }}
 
       # Чтение новой версии из version_log и установка лейбла на PR 
       - name: Add new version label to PR
