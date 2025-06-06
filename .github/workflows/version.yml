@@ -1,69 +1,58 @@
-name: Version Update
+name: Update version
 
 on:
   pull_request:
-    branches: [ master ]
-    # Запускается только при закрытии PR
-    types: [ closed ]
+    branches:
+      - master
 
 jobs:
-  version-update:
-    if: github.event.pull_request.merged == true
+  update-version:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+       # Клонирует репозиторий
+      - name: Checkout repo
+        uses: actions/checkout@v3
         with:
-          # Получает всю историю коммитов 
-          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Получаем полную историю комитов для анализа
 
-      - name: Set up Python
+        # Устонавливает Python
+      - name: Set up python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Determine update type
+       # Определяем тип обновления из заголовка PR
+      - name: What type of update
         id: update-type
-        # Анализирует заголовок PR: если есть слово "feature" - тип обновления minor, иначе - patch.
-        # Сохраняет результат в выходные данные шага через $GITHUB_OUTPUT
         run: |
-          if [[ "${{ github.event.pull_request.title }}" == *"feature"* ]]; then
-            echo "update_type=minor" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event.pull_request.title }}" == *"hotfix"* ]]; then
-            echo "update_type=patch" >> $GITHUB_OUTPUT
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [[ "$PR_TITLE" =~ "[major]" ]]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif [[ "$PR_TITLE" =~ "[minor]" ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
           fi
 
+       # Запуск Python-файла для обновления версии
       - name: Update version
-        # Запускает version_up.py с определенным типом обновления.
-        # Запускает скрипт version_up.py с определенным типом обновления.
-        # Настраивает git для коммитов от имени bot.
-        # Добавляет измененные файлы version и version_log.
-        # Извлекает старую и новую версии.
-        # Создает коммит с сообщением в требуемом формате.
-        # Пушит изменения обратно в репозиторий.
         run: |
-          python version_up.py ${{ steps.update-type.outputs.update_type }}
-          git config --global user.name "bot"
-          git config --global user.email "bot@github.com"
+          echo "${{ steps.update-type.outputs.type }}" | python version_up.py
+
+      # Коммит изменения
+      - name: Commit of version changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
           git add version version_log
-          OLD_VERSION=$(cat version_up.py | grep -oP "(?<=version = ')[^']+" || echo "0.0.0")
-          NEW_VERSION=$(cat version)
-          git commit -m "[$NEW_VERSION] <.[$OLD_VERSION] ${{ steps.update-type.outputs.update_type }} up"
+          git commit -m "Обновление версии до $(cat version) [${{ steps.update-type.outputs.type }}]"
           git push
 
-      - name: Add version label
-        # Использует GitHub Script для работы с API GitHub.
-        # Добавляет лейбл с новой версией к мердженному PR.
-        # context.issue.number: Номер PR/issue.
-        # context.repo: Информация о репозитории.
-        # labels: Массив лейблов для добавления.
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.addLabels({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ['${{ steps.update-version.outputs.new-version }}']
-            })
+        # Создание label с новой версией
+      - name: Creating label with new version
+        run: |
+          NEW_VERSION=$(cat version)
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
