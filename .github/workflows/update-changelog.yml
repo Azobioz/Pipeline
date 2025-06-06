@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.workflow_run.head_branch }}
@@ -48,7 +48,6 @@ jobs:
 
       - name: Updating changelog.md
         run: |
-          cd $GITHUB_WORKSPACE
           if [ -f changelog.md ]; then
             CURRENT_CHANGELOG=$(cat changelog.md)
           else
@@ -61,7 +60,7 @@ jobs:
           if [ -z "$CURRENT_CHANGELOG" ]; then
             echo -e "$NEW_ENTRY" > changelog.md
           else
-            echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" > changelog.md
+            echo -e "$NEW_ENTRY$CURRENT_CHANGELOG" > changelog.md
           fi
           git add changelog.md
 
