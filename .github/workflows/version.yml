@@ -44,11 +44,12 @@ jobs:
       # Коммит изменения
       - name: Commit of version changes
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add version version_log
-          git commit -m "Обновление версии до $(cat version) [${{ steps.update-type.outputs.type }}]"
-          git push
+         git config --global user.name "GitHub Action"
+         git config --global user.email "action@github.com"
+         git checkout ${{ github.head_ref }}  
+         git add version version_log
+         git commit -m "Update version to $(cat version) [${{ steps.update-type.outputs.type }}]"
+         git push origin ${{ github.head_ref }}
 
         # Создание label с новой версией
       - name: Creating label with new version
