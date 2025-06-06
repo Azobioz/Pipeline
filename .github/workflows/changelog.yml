@@ -41,7 +41,18 @@ jobs:
       - name: Updating changelog.md
         # Чтение текущего changelog, формирование новой записи, добавление новой записи в начало файла и сохранение остального содержимого
         run: |
-          CURRENT_CHANGELOG=$(cat changelog.md)
+          if [ -f changelog.md ]; then
+            CURRENT_CHANGELOG=$(cat changelog.md)
+          else
+            CURRENT_CHANGELOG=""
+          fi
+
+          if [ -z "$CURRENT_CHANGELOG" ]; then
+            echo -e "$NEW_ENTRY" > changelog.md
+          else
+            echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" >> changelog.md
+          fi
+          
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH=${{ steps.branch.outputs.branch_name }}
           LAST_LOG=${{ steps.version-log.outputs.last_log }}
