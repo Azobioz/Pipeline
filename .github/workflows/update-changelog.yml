@@ -60,7 +60,7 @@ jobs:
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           LAST_LOG="${{ steps.version-log.outputs.last_log }}"
-          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n-  \`$BRANCH\`\n- $LAST_LOG\n\n"
+          NEW_ENTRY="## [$NEW_VERSION] - `$BRANCH`
           if [ -z "$CURRENT_CHANGELOG" ]; then
             echo -e "$NEW_ENTRY" > changelog.md
           else
