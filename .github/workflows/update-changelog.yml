@@ -33,7 +33,6 @@ jobs:
       - name: Getting info about branch
         id: branch
         run: |
-          # Проверяем, что ветка передана корректно
           if [ -z "${{ github.event.workflow_run.head_branch }}" ]; then
             echo "Error: Couldn't define branch"
             exit 1
@@ -55,22 +54,37 @@ jobs:
           if [ -f changelog.md ]; then
             CURRENT_CHANGELOG=$(cat changelog.md)
           else
-            CURRENT_CHANGELOG=""
+            CURRENT_CHANGELOG="# Changelog\n\n"
           fi
+          
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH="${{ steps.branch.outputs.branch_name }}"
-          LAST_LOG="${{ steps.version-log.outputs.last_log }}"
-          NEW_ENTRY="## [$NEW_VERSION] - $BRANCH"
-          if [ -z "$CURRENT_CHANGELOG" ]; then
-            echo -e "$NEW_ENTRY" > changelog.md
-          else
-            echo -e "$NEW_ENTRY$CURRENT_CHANGELOG" > changelog.md
-          fi
+          TARGET_BRANCH="master"  # Укажите вашу целевую ветку
+          DATE=$(date '+%Y-%m-%d')
+          
+          NEW_ENTRY="$NEW_VERSION - $BRANCH"
+          
+          echo -e "$NEW_ENTRY$CURRENT_CHANGELOG" > changelog.md
           git add changelog.md
 
       - name: Commit changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git commit -m "Обновление changelog.md для версии ${{ steps.version.outputs.current_version }}"
+          git commit -m "Update changelog for version ${{ steps.version.outputs.current_version }}"
           git push origin ${{ github.event.workflow_run.head_branch }}
+
+      - name: Add changelog label to PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.workflow_run.pull_requests[0].number,
+                labels: ['changelog']
+              })
+            } catch (error) {
+              console.log('Could not add label, error:', error)
+            }
