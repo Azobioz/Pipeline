@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.workflow_run.head_branch }}
@@ -26,15 +26,19 @@ jobs:
             CURRENT_VERSION=$(cat version)
             echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           else
-            echo "Ошибка: Файл version не найден"
+            echo "Error: version file is not found"
             exit 1
           fi
 
       - name: Getting info about branch
         id: branch
         run: |
-          BRANCH_NAME=${{ github.event.workflow_run.head_branch }}
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          # Проверяем, что ветка передана корректно
+          if [ -z "${{ github.event.workflow_run.head_branch }}" ]; then
+            echo "Error: Couldn't define branch"
+            exit 1
+          fi
+          echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
 
       - name: Reading last line from version_log
         id: version-log
@@ -54,9 +58,9 @@ jobs:
             CURRENT_CHANGELOG=""
           fi
           NEW_VERSION=${{ steps.version.outputs.current_version }}
-          BRANCH=${{ steps.branch.outputs.branch_name }}
-          LAST_LOG=${{ steps.version-log.outputs.last_log }}
-          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- Включены изменения из ветки \`$BRANCH\`\n- $LAST_LOG\n\n"
+          BRANCH="${{ steps.branch.outputs.branch_name }}"
+          LAST_LOG="${{ steps.version-log.outputs.last_log }}"
+          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n-  \`$BRANCH\`\n- $LAST_LOG\n\n"
           if [ -z "$CURRENT_CHANGELOG" ]; then
             echo -e "$NEW_ENTRY" > changelog.md
           else
