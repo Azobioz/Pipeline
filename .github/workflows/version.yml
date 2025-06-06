@@ -83,7 +83,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: azizbashirov/Pipeline
+          images: azobioz/Pipeline
           tags: |
             type=raw,value=v${{ steps.new-version.outputs.new_version }},enable=${{ job.status == 'success' }}
 
@@ -100,7 +100,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          repository: azizbashirov/Pipeline
+          repository: azobioz/Pipeline
           readme-filepath: README.md
 
       - name: Add dockerhub label to PR
