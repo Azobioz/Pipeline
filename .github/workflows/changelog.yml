@@ -1,4 +1,4 @@
-name: Updating changelog
+name: Update changelog
 
 on:
   workflow_run:
@@ -22,8 +22,13 @@ jobs:
       - name: Reading current version
         id: version
         run: |
-          CURRENT_VERSION=$(cat version)
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          if [ -f version ]; then
+            CURRENT_VERSION=$(cat version)
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Ошибка: Файл version не найден"
+            exit 1
+          fi
 
       - name: Getting info about branch
         id: branch
@@ -43,11 +48,20 @@ jobs:
 
       - name: Updating changelog.md
         run: |
+          if [ -f changelog.md ]; then
+            CURRENT_CHANGELOG=$(cat changelog.md)
+          else
+            CURRENT_CHANGELOG=""
+          fi
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH=${{ steps.branch.outputs.branch_name }}
           LAST_LOG=${{ steps.version-log.outputs.last_log }}
           NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- Включены изменения из ветки \`$BRANCH\`\n- $LAST_LOG\n\n"
-          echo -e "$NEW_ENTRY" >> changelog.md
+          if [ -z "$CURRENT_CHANGELOG" ]; then
+            echo -e "$NEW_ENTRY" > changelog.md
+          else
+            echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" > changelog.md
+          fi
 
       - name: Commit changes
         run: |
