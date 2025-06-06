@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0  # Получаем полную историю комитов для анализа
+          fetch-depth: 0  
 
       - name: Set up python
         uses: actions/setup-python@v4
@@ -30,11 +30,11 @@ jobs:
           elif [[ "$PR_TITLE" =~ "hotfix" ]]; then
             echo "type=patch" >> $GITHUB_OUTPUT
           else
-            echo "Ошибка: В заголовке PR отсутствует 'feature' или 'hotfix'. Укажите тип обновления в заголовке PR."
+            echo "Error: No hotfix or feature in PR title."
             exit 1  
           fi
 
-      - name: Сохранение старой версии
+      - name: Saving old version
         id: old-version
         run: |
           OLD_VERSION=$(cat version)
@@ -83,7 +83,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: maxmakarov/Pipeline
+          images: azizbashirov/Pipeline
           tags: |
             type=raw,value=v${{ steps.new-version.outputs.new_version }},enable=${{ success }}
 
@@ -100,7 +100,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          repository: maxmakarov/Pipeline
+          repository: azizbashirov/Pipeline
           readme-filepath: README.md
 
       - name: Add dockerhub label to PR
