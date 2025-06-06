@@ -41,19 +41,34 @@ jobs:
         run: |
           echo "${{ steps.update-type.outputs.type }}" | python version_up.py
 
+       # Получаем новую версию и временную метку
+      - name: Get new version and temporary 
+        id: new-version
+        run: |
+          NEW_VERSION=$(cat version)
+          TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S.%6N')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
       # Коммит изменения
       - name: Commit of version changes
         run: |
-         git config --global user.name "GitHub Action"
-         git config --global user.email "action@github.com"
-         git checkout ${{ github.head_ref }}  
-         git add version version_log
-         git commit -m "Update version to $(cat version) [${{ steps.update-type.outputs.type }}]"
-         git push origin ${{ github.head_ref }}
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git checkout ${{ github.head_ref }}
+          git add version version_log
+          git commit -m "[${{ steps.new-version.outputs.new_version }}] <-- [${{ steps.old-version.outputs.old_version }}] [${{ steps.new-version.outputs.timestamp }}] ${{ steps.update-type.outputs.type }} up"
+          git push origin ${{ github.head_ref }}
 
         # Создание label с новой версией
       - name: Creating label with new version
-        run: |
-          NEW_VERSION=$(cat version)
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const newVersion = "${{ steps.new-version.outputs.new_version }}";
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: [`${newVersion}`]
+            });
