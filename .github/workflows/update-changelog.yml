@@ -51,11 +51,8 @@ jobs:
 
       - name: Updating changelog.md
         run: |
-          if [ -f changelog.md ]; then
-            CURRENT_CHANGELOG=$(cat changelog.md)
-          else
-            CURRENT_CHANGELOG="# Changelog\n\n"
-          fi
+          NEW_VERSION=${{ steps.version.outputs.current_version }}
+          BRANCH="${{ steps.branch.outputs.branch_name }}"
           
           NEW_ENTRY="$NEW_VERSION - $BRANCH\n"
           
