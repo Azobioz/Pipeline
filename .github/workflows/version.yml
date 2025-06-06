@@ -85,7 +85,7 @@ jobs:
         with:
           images: azizbashirov/Pipeline
           tags: |
-            type=raw,value=v${{ steps.new-version.outputs.new_version }},enable=${{ success }}
+            type=raw,value=v${{ steps.new-version.outputs.new_version }},enable=${{ job.status == 'success' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
