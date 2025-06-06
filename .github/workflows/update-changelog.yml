@@ -39,7 +39,7 @@ jobs:
           NEW_ENTRY="${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}\n"
           
           if [ -f changelog.md ]; then
-            echo -e "${NEW_ENTRY}$(cat changelog.md)" > changelog.md
+            echo -e "$(cat changelog.md)${NEW_ENTRY}" > changelog.md
           else
             echo -e "${NEW_ENTRY}" > changelog.md
           fi
