@@ -36,6 +36,13 @@ jobs:
             echo "type=patch" >> $GITHUB_OUTPUT
           fi
 
+        # Сохраняем старую версию перед обновлением
+      - name: Сохранение старой версии
+        id: old-version
+        run: |
+          OLD_VERSION=$(cat version)
+          echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+      
        # Запуск Python-файла для обновления версии
       - name: Update version
         run: |
