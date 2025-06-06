@@ -47,7 +47,7 @@ jobs:
           LAST_LOG=${{ steps.version-log.outputs.last_log }}
           NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- \`$BRANCH\`\n- $LAST_LOG\n\n"
 
-          echo -e "$NEW_ENTRY$CURRENT_CHANGELOG" > changelog.md
+          echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" > changelog.md
 
       # Коммит изменения в changelog.md
       - name: Commit of changes in changelog
