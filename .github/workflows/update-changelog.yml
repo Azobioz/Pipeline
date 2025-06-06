@@ -19,41 +19,28 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
 
-      - name: Reading current version
+      - name: Get current version
         id: version
         run: |
           if [ -f version ]; then
-            CURRENT_VERSION=$(cat version)
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
           else
-            echo "Error: version file is not found"
+            echo "Error: version file not found"
             exit 1
           fi
 
-      - name: Getting info about branch
+      - name: Get branch name
         id: branch
         run: |
-          if [ -z "${{ github.event.workflow_run.head_branch }}" ]; then
-            echo "Error: Couldn't define branch"
-            exit 1
-          fi
           echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
 
-      - name: Updating changelog.md
+      - name: Update changelog.md
         run: |
-          NEW_VERSION=${{ steps.version.outputs.current_version }}
-          BRANCH="${{ steps.branch.outputs.branch_name }}"
+          NEW_ENTRY="${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}\n"
           
-          # Формируем новую запись с переносом строки
-          NEW_ENTRY="$NEW_VERSION - $BRANCH\n"
-          
-          # Если файл существует, читаем его и добавляем новую запись в начало
           if [ -f changelog.md ]; then
-            # Удаляем лишние пустые строки в начале и конце существующего содержимого
-            EXISTING_CONTENT=$(cat changelog.md | sed -e '${/^$/d;}' | sed -e '1{/^$/d;}')
-            echo -e "${NEW_ENTRY}${EXISTING_CONTENT}" > changelog.md
+            echo -e "${NEW_ENTRY}$(cat changelog.md)" > changelog.md
           else
-            # Создаем новый файл
             echo -e "${NEW_ENTRY}" > changelog.md
           fi
           
@@ -66,7 +53,7 @@ jobs:
           git commit -m "Update changelog: ${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}"
           git push origin ${{ github.event.workflow_run.head_branch }}
 
-      - name: Add changelog label to PR
+      - name: Add changelog label
         uses: actions/github-script@v6
         with:
           script: |
@@ -81,5 +68,5 @@ jobs:
                 })
               }
             } catch (error) {
-              console.log('Label adding error:', error)
+              console.log('Error adding label:', error)
             }
