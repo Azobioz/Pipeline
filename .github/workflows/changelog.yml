@@ -1,12 +1,14 @@
 name: Updating changelog
 
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["Update version"]
+    types:
+      - completed
 
 jobs:
   update-changelog:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -14,58 +16,43 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0  
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
 
-      # Чтение текущей версии из файла version
       - name: Reading current version
         id: version
         run: |
           CURRENT_VERSION=$(cat version)
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
-        # Получение информации о ветке PR
-      - name: Getting info about branch in PR
+      - name: Getting info about branch
         id: branch
         run: |
-          BRANCH_NAME=${{ github.head_ref }}
+          BRANCH_NAME=${{ github.event.workflow_run.head_branch }}
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
-      # Чтение последней записи из version_log
       - name: Reading last line from version_log
         id: version-log
         run: |
-          LAST_LOG=$(tail -n 1 version_log)
+          if [ -f version_log ]; then
+            LAST_LOG=$(tail -n 1 version_log)
+          else
+            LAST_LOG="No previous updates"
+          fi
           echo "last_log=$LAST_LOG" >> $GITHUB_OUTPUT
 
-      # Обновление changelog.md
       - name: Updating changelog.md
-        # Чтение текущего changelog, формирование новой записи, добавление новой записи в начало файла и сохранение остального содержимого
         run: |
-          if [ -f changelog.md ]; then
-            CURRENT_CHANGELOG=$(cat changelog.md)
-          else
-            CURRENT_CHANGELOG=""
-          fi
-
-          if [ -z "$CURRENT_CHANGELOG" ]; then
-            echo -e "$NEW_ENTRY" > changelog.md
-          else
-            echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" >> changelog.md
-          fi
-          
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH=${{ steps.branch.outputs.branch_name }}
           LAST_LOG=${{ steps.version-log.outputs.last_log }}
-          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- \`$BRANCH\`\n- $LAST_LOG\n\n"
+          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- Включены изменения из ветки \`$BRANCH\`\n- $LAST_LOG\n\n"
+          echo -e "$NEW_ENTRY" >> changelog.md
 
-          echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" > changelog.md
-
-      # Коммит изменения в changelog.md
-      - name: Commit of changes in changelog
+      - name: Commit changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git checkout ${{ github.head_ref }}
           git add changelog.md
-          git commit -m "Updating changelog.md ${{ steps.version.outputs.current_version }}"
-          git push origin ${{ github.head_ref }}
+          git commit -m "Обновление changelog.md для версии ${{ steps.version.outputs.current_version }}"
+          git push origin ${{ github.event.workflow_run.head_branch }}
