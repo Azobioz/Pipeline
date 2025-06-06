@@ -39,9 +39,9 @@ jobs:
           NEW_ENTRY="${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}\n"
           
           if [ -f changelog.md ]; then
-            echo -e "$(cat changelog.md)${NEW_ENTRY}" > changelog.md
+            echo -e "$NEW_ENTRY" >> changelog.md
           else
-            echo -e "${NEW_ENTRY}" > changelog.md
+            echo -e "$NEW_ENTRY" > changelog.md
           fi
           
           git add changelog.md
