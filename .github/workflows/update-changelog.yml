@@ -39,27 +39,22 @@ jobs:
           fi
           echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
 
-      - name: Reading last line from version_log
-        id: version-log
-        run: |
-          if [ -f version_log ]; then
-            LAST_LOG=$(tail -n 1 version_log)
-          else
-            LAST_LOG="No previous updates"
-          fi
-          echo "last_log=$LAST_LOG" >> $GITHUB_OUTPUT
-
       - name: Updating changelog.md
         run: |
           NEW_VERSION=${{ steps.version.outputs.current_version }}
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           
+          # Формируем новую запись с переносом строки
           NEW_ENTRY="$NEW_VERSION - $BRANCH\n"
           
+          # Если файл существует, читаем его и добавляем новую запись в начало
           if [ -f changelog.md ]; then
-            echo -e "$NEW_ENTRY$(cat changelog.md)" > changelog.md
+            # Удаляем лишние пустые строки в начале и конце существующего содержимого
+            EXISTING_CONTENT=$(cat changelog.md | sed -e '${/^$/d;}' | sed -e '1{/^$/d;}')
+            echo -e "${NEW_ENTRY}${EXISTING_CONTENT}" > changelog.md
           else
-            echo -e "$NEW_ENTRY" > changelog.md
+            # Создаем новый файл
+            echo -e "${NEW_ENTRY}" > changelog.md
           fi
           
           git add changelog.md
@@ -68,7 +63,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git commit -m "Update changelog for version ${{ steps.version.outputs.current_version }}"
+          git commit -m "Update changelog: ${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}"
           git push origin ${{ github.event.workflow_run.head_branch }}
 
       - name: Add changelog label to PR
@@ -76,12 +71,15 @@ jobs:
         with:
           script: |
             try {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.workflow_run.pull_requests[0].number,
-                labels: ['changelog']
-              })
+              const prs = context.payload.workflow_run.pull_requests
+              if (prs && prs.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prs[0].number,
+                  labels: ['changelog']
+                })
+              }
             } catch (error) {
-              console.log('Could not add label, error:', error)
+              console.log('Label adding error:', error)
             }
