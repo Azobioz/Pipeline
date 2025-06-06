@@ -1,4 +1,4 @@
-name: Обновление changelog
+name: Updating changelog
 
 on:
   pull_request:
