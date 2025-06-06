@@ -1,0 +1,73 @@
+name: Update changelog
+
+on:
+  workflow_run:
+    workflows: ["Update version"]
+    types:
+      - completed
+
+jobs:
+  update-changelog:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Reading current version
+        id: version
+        run: |
+          if [ -f version ]; then
+            CURRENT_VERSION=$(cat version)
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Ошибка: Файл version не найден"
+            exit 1
+          fi
+
+      - name: Getting info about branch
+        id: branch
+        run: |
+          BRANCH_NAME=${{ github.event.workflow_run.head_branch }}
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Reading last line from version_log
+        id: version-log
+        run: |
+          if [ -f version_log ]; then
+            LAST_LOG=$(tail -n 1 version_log)
+          else
+            LAST_LOG="No previous updates"
+          fi
+          echo "last_log=$LAST_LOG" >> $GITHUB_OUTPUT
+
+      - name: Updating changelog.md
+        run: |
+          cd $GITHUB_WORKSPACE
+          if [ -f changelog.md ]; then
+            CURRENT_CHANGELOG=$(cat changelog.md)
+          else
+            CURRENT_CHANGELOG=""
+          fi
+          NEW_VERSION=${{ steps.version.outputs.current_version }}
+          BRANCH=${{ steps.branch.outputs.branch_name }}
+          LAST_LOG=${{ steps.version-log.outputs.last_log }}
+          NEW_ENTRY="## [$NEW_VERSION] - $(date '+%Y-%m-%d')\n\n- Включены изменения из ветки \`$BRANCH\`\n- $LAST_LOG\n\n"
+          if [ -z "$CURRENT_CHANGELOG" ]; then
+            echo -e "$NEW_ENTRY" > changelog.md
+          else
+            echo -e "$CURRENT_CHANGELOG$NEW_ENTRY" > changelog.md
+          fi
+          git add changelog.md
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git commit -m "Обновление changelog.md для версии ${{ steps.version.outputs.current_version }}"
+          git push origin ${{ github.event.workflow_run.head_branch }}
