@@ -32,6 +32,9 @@ jobs:
             echo "type=minor" >> $GITHUB_OUTPUT
           elif [[ "$PR_TITLE" =~ "hotfix" ]]; then
             echo "type=patch" >> $GITHUB_OUTPUT
+          else
+            echo "Ошибка: В заголовке PR отсутствует 'feature' или 'hotfix'. Укажите тип обновления в заголовке PR."
+            exit 1  
           fi
 
         # Сохраняем старую версию перед обновлением
