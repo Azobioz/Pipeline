@@ -28,9 +28,9 @@ jobs:
         id: update-type
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
-          if [[ "$PR_TITLE" =~ "[feature]" ]]; then
+          if [[ "$PR_TITLE" =~ "feature" ]]; then
             echo "type=minor" >> $GITHUB_OUTPUT
-          elif [[ "$PR_TITLE" =~ "[hotfix]" ]]; then
+          elif [[ "$PR_TITLE" =~ "hotfix" ]]; then
             echo "type=patch" >> $GITHUB_OUTPUT
           fi
 
