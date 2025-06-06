@@ -57,14 +57,14 @@ jobs:
             CURRENT_CHANGELOG="# Changelog\n\n"
           fi
           
-          NEW_VERSION=${{ steps.version.outputs.current_version }}
-          BRANCH="${{ steps.branch.outputs.branch_name }}"
-          TARGET_BRANCH="master"  # Укажите вашу целевую ветку
-          DATE=$(date '+%Y-%m-%d')
+          NEW_ENTRY="$NEW_VERSION - $BRANCH\n"
           
-          NEW_ENTRY="$NEW_VERSION - $BRANCH"
+          if [ -f changelog.md ]; then
+            echo -e "$NEW_ENTRY$(cat changelog.md)" > changelog.md
+          else
+            echo -e "$NEW_ENTRY" > changelog.md
+          fi
           
-          echo -e "$NEW_ENTRY$CURRENT_CHANGELOG" > changelog.md
           git add changelog.md
 
       - name: Commit changes
