@@ -32,20 +32,21 @@ jobs:
       - name: Get branch name
         id: branch
         run: |
-          echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          echo "branch_name=${{ event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
 
       - name: Update changelog.md
         run: |
-          CURRENT_TIME=$(date -u '+%H:%M')
-          CURRENT_DATE=$(date -u '+%Y.%m.%d')
+          CURRENT_TIME=$(date '+%H:%M')
+          CURRENT_DATE=$(date '+%Y.%m.%d')
           VERSION="${{ steps.version.outputs.current_version }}"
           NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${{ steps.branch.outputs.branch_name }}]"
 
           if [ -f changelog.md ]; then
-            {
-              echo -e "${NEW_ENTRY}"
-              cat changelog.md
-            } > changelog.md
+            # Используем временный файл для избежания конфликта
+            TEMP_FILE=$(mktemp)
+            echo -e "${NEW_ENTRY}" > "${TEMP_FILE}"
+            cat changelog.md >> "${TEMP_FILE}"
+            mv "${TEMP_FILE}" changelog.md
           else
             echo -e "${NEW_ENTRY}" > changelog.md
           fi
@@ -72,4 +73,4 @@ jobs:
                   labels: ['changelog']
                 })
               }
-    
+        
