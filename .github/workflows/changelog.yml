@@ -36,12 +36,14 @@ jobs:
 
       - name: Update changelog.md
         run: |
-          NEW_ENTRY="${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}\n"
-          
+          CURRENT_TIME=$(date '+%H:%M')
+          CURRENT_DATE=$(date '+%Y.%m.%d')
+          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.branch.outputs.branch_name }}]"
+
           if [ -f changelog.md ]; then
-            echo -e "$NEW_ENTRY" >> changelog.md
+            echo -e "${NEW_ENTRY}\n$(cat changelog.md)" > changelog.md
           else
-            echo -e "$NEW_ENTRY" > changelog.md
+            echo -e "${NEW_ENTRY}" > changelog.md
           fi
           
           git add changelog.md
@@ -50,14 +52,13 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git commit -m "Update changelog: ${{ steps.version.outputs.current_version }} - ${{ steps.branch.outputs.branch_name }}"
+          git commit -m "Update changelog: [${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.branch.outputs.branch_name }}]" || echo "No changes to commit"
           git push origin ${{ github.event.workflow_run.head_branch }}
 
       - name: Add changelog label
         uses: actions/github-script@v6
         with:
           script: |
-            try {
               const prs = context.payload.workflow_run.pull_requests
               if (prs && prs.length > 0) {
                 await github.rest.issues.addLabels({
@@ -67,6 +68,3 @@ jobs:
                   labels: ['changelog']
                 })
               }
-            } catch (error) {
-              console.log('Error adding label:', error)
-            }
