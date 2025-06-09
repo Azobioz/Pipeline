@@ -36,12 +36,16 @@ jobs:
 
       - name: Update changelog.md
         run: |
-          CURRENT_TIME=$(date '+%H:%M')
-          CURRENT_DATE=$(date '+%Y.%m.%d')
-          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.branch.outputs.branch_name }}]"
+          CURRENT_TIME=$(date -u '+%H:%M')
+          CURRENT_DATE=$(date -u '+%Y.%m.%d')
+          VERSION="${{ steps.version.outputs.current_version }}"
+          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${{ steps.branch.outputs.branch_name }}]"
 
           if [ -f changelog.md ]; then
-            echo -e "${NEW_ENTRY}\n$(cat changelog.md)" > changelog.md
+            {
+              echo -e "${NEW_ENTRY}"
+              cat changelog.md
+            } > changelog.md
           else
             echo -e "${NEW_ENTRY}" > changelog.md
           fi
@@ -52,7 +56,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git commit -m "Update changelog: [${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.branch.outputs.branch_name }}]" || echo "No changes to commit"
+          git commit -m "Update changelog: [${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.version.outputs.current_version }} ${{ steps.branch.outputs.branch_name }}]" || echo "No changes to commit"
           git push origin ${{ github.event.workflow_run.head_branch }}
 
       - name: Add changelog label
@@ -68,3 +72,4 @@ jobs:
                   labels: ['changelog']
                 })
               }
+    
