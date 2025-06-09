@@ -79,7 +79,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract labels for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
