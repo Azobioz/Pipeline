@@ -38,10 +38,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Download artifact ${{ env.CHANGELOG_FILE }}
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.CHANGELOG_FILE }}
+      - name: Ensure changelog.md exists
+        run: |
+          if [ ! -f changelog.md ]; then
+            echo "changelog.md not found, creating empty file"
+            echo "No changelog available" > changelog.md
+          fi
 
       - name: send telegram message on merge
         uses: appleboy/telegram-action@master
@@ -49,14 +51,14 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           format: html
-          document: ${{ env.CHANGELOG_FILE }}
+          document: changelog.md
           message: |           
             Новый выпуск изменений
             <b>Проект</b>: <code>${{ github.event.repository.name }}</code>
-            <b>Версия</b>: <code>${{ github.event.pull_request.head.ref }}-${{ github.sha }}</code> 
+            <b>Версия</b>: <code>${{ github.event.pull_request.head.ref }}-${{ github.sha }}</code>
             <b>Дата</b>: <code>${{ steps.current-time.outputs.formattedTime }}</code>
             <b>Автор</b>: <a href="https://github.com/${{ github.event.pull_request.user.login }}">${{ github.event.pull_request.user.login }}</a>
-            <b>Описание изменений:</b> ${{ github.event.pull_request.title }}  <!-- Используем заголовок PR как описание -->
+            <b>Описание изменений:</b> ${{ github.event.pull_request.title }}
 
             Информация о Git-репозитории
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}">${{ github.event.pull_request.number }}</a>
