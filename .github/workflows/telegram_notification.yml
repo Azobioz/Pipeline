@@ -63,10 +63,10 @@ jobs:
             <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.current_version }}">${{ steps.version.outputs.current_version }}</a>
             
             <b>Информация о Docker-репозитории</b>
-            <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKERHUB_LOGIN }}">${{ secrets.DOCKERHUB_LOGIN }}</a>
-            <b>Название</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/general">${{ github.event.repository.name }}</a>
-            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">${{ steps.version.outputs.current_version }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">Pipeline:${{ steps.version.outputs.current_version }}</a>
+            <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
+            <b>Название</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}/general">${{ github.event.repository.name }}</a>
+            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}/tags">${{ steps.version.outputs.current_version }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">Pipeline:v${{ steps.version.outputs.current_version }}</a>
 
 env:
   REPO_NAME: ${{ github.event.repository.name }}
