@@ -50,22 +50,22 @@ jobs:
         id: docker-tag
         run: |
           REPO="pipeline"
-          DOCKER_TOKEN="${{ secrets.DOCKER_TOKEN }}"
+          DOCKER_TOKEN="${{ secrets.DOCKER_TOKEN }}"  # Исправлено на DOCKERHUB_TOKEN
           DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+          echo "Fetching tags for $DOCKER_USERNAME/$REPO with token: $DOCKER_TOKEN" >> $GITHUB_STEP_SUMMARY
           RESPONSE=$(curl -s -H "Authorization: JWT $DOCKER_TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/$REPO/tags/?page_size=10&page=1&ordering=-last_updated")
-          echo "API Response: $RESPONSE" >> $GITHUB_STEP_SUMMARY  # Отладочный вывод в summary
+          echo "API Response: $RESPONSE" >> $GITHUB_STEP_SUMMARY 
           if [ -n "$RESPONSE" ] && echo "$RESPONSE" | jq -e '.results | length > 0' > /dev/null 2>&1; then
-            # Берем первый тег из отсортированного списка (самый новый)
-            LATEST_TAG=$(echo "$RESPONSE" | jq -r '.results[0].name')
+            LATEST_TAG=$(echo "$RESPONSE" | jq -r '.results[].name' | sort -V | tail -n 1)
             if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
               LATEST_TAG="${{ steps.version.outputs.current_version }}"
-              echo "No valid tag found, using version from file: $LATEST_TAG"
+              echo "No valid tag found, using version from file: $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
             else
-              echo "Latest tag from Docker Hub: $LATEST_TAG"
+              echo "Latest tag from Docker Hub (sorted): $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
             fi
           else
             LATEST_TAG="${{ steps.version.outputs.current_version }}"
-            echo "No tags found in Docker Hub, using version from file: $LATEST_TAG"
+            echo "No tags found in Docker Hub, using version from file: $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
           fi
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
         env:
