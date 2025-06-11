@@ -43,15 +43,24 @@ jobs:
         run: |
           echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Get latest Docker tag
         id: docker-tag
         run: |
           REPO="pipeline"
-          RESPONSE=$(curl -s -H "Authorization: JWT ${{ secrets.DOCKER_TOKEN }}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/$REPO/tags/?page_size=1&page=1&ordering=-last_updated")
-          LATEST_TAG=$(echo "$RESPONSE" | jq -r '.results[0].name' || echo "${{ steps.version.outputs.current_version }}")
+          DOCKER_TOKEN="${{ secrets.DOCKER_TOKEN }}"
+          DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+          RESPONSE=$(curl -s -H "Authorization: JWT $DOCKER_TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/$REPO/tags/?page_size=10&page=1&ordering=-last_updated")
+          echo "API Response: $RESPONSE" >> $GITHUB_STEP_SUMMARY 
+          echo "Latest tag from Docker Hub: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       
-      - name: send telegram message on PR
+      - name: send telegram message when PR
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
