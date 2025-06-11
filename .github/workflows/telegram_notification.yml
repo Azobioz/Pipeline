@@ -7,10 +7,10 @@ on:
       - master
 
 jobs:
-  final-notify:
-    name: (TG) Notify final
+  notify:
+    name:  Notify in telegram
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true 
+    if: github.event.pull_request.merged == true  
 
     steps:
       - name: Get branch names
@@ -22,7 +22,7 @@ jobs:
         id: current-time
         with:
           format: YYYY.MM.DD HH:mm:ss
-          utcOffset: "+02:00"
+          utcOffset: "+03:00"  
 
       - name: Use current time
         env:
@@ -38,14 +38,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Ensure changelog.md exists
+      - name: Get current version
+        id: version
         run: |
-          if [ ! -f changelog.md ]; then
-            echo "changelog.md not found, creating empty file"
-            echo "No changelog available" > changelog.md
-          fi
+          echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
 
-      - name: send telegram message on merge
+      - name: send telegram message on PR
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
@@ -53,22 +51,22 @@ jobs:
           format: html
           document: changelog.md
           message: |           
-            Новый выпуск изменений
+            <b>Новый выпуск изменений</b>
             <b>Проект</b>: <code>${{ github.event.repository.name }}</code>
-            <b>Версия</b>: <code>${{ github.event.pull_request.head.ref }}-${{ github.sha }}</code>
+            <b>Версия</b>: <code>${{ steps.version.outputs.current_version }}</code>
             <b>Дата</b>: <code>${{ steps.current-time.outputs.formattedTime }}</code>
             <b>Автор</b>: <a href="https://github.com/${{ github.event.pull_request.user.login }}">${{ github.event.pull_request.user.login }}</a>
             <b>Описание изменений:</b> ${{ github.event.pull_request.title }}
 
-            Информация о Git-репозитории
+            <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}">${{ github.event.pull_request.number }}</a>
-            <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.sha }}">${{ github.sha }}</a>
+            <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.current_version }}">${{ steps.version.outputs.current_version }}</a>
             
-            Информация о Docker-репозитории
+            <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKERHUB_LOGIN }}">${{ secrets.DOCKERHUB_LOGIN }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/general">${{ github.event.repository.name }}</a>
-            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">${{ github.event.pull_request.head.ref }}-${{ github.sha }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}:${{ github.event.pull_request.head.ref }}-${{ github.sha }}</a>
+            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">${{ steps.version.outputs.current_version }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">Pipeline:${{ steps.version.outputs.current_version }}</a>
 
 env:
   REPO_NAME: ${{ github.event.repository.name }}
