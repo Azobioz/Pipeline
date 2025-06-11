@@ -43,6 +43,14 @@ jobs:
         run: |
           echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
 
+      - name: Get latest Docker tag
+        id: docker-tag
+        run: |
+          REPO="pipeline"
+          RESPONSE=$(curl -s -H "Authorization: JWT $DOCKER_TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/$REPO/tags/?page_size=1&page=1&ordering=-last_updated")
+          LATEST_TAG=$(echo "$RESPONSE" | jq -r '.results[0].name' || echo "${{ steps.version.outputs.current_version }}")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+      
       - name: send telegram message on PR
         uses: appleboy/telegram-action@master
         with:
@@ -64,12 +72,8 @@ jobs:
             
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
-            <b>Название</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}/general">${{ github.event.repository.name }}</a>
-            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}/tags">${{ steps.version.outputs.current_version }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_LOGIN }}/${{ github.event.repository.name }}/tags">Pipeline:v${{ steps.version.outputs.current_version }}</a>
-
-env:
-  REPO_NAME: ${{ github.event.repository.name }}
-  CHANGELOG_FILE: changelog.md
-  PR_NUMBER: ${{ github.event.pull_request.number }}
-  URL_REPO: ${{ github.server_url }}/${{ github.repository }}
+            <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
+            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.docker-tag.outputs.latest_tag }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">pipeline:${{ steps.docker-tag.outputs.latest_tag }}</a>
+            
+  
