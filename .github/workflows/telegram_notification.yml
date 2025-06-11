@@ -95,6 +95,6 @@ jobs:
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
             <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.docker-tag.outputs.latest_tag }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">pipeline:${{ steps.docker-tag.outputs.latest_tag }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.docker-tag.outputs.latest_tag }}</a>
             
   
