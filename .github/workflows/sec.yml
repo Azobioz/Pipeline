@@ -5,6 +5,7 @@ on:
     branches:
       - master  
 
+# Никит, я коменты пишу для себя 
 # Задачи
 jobs:
   # Проверка на безопасность с CodeQL
@@ -17,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        # Устанавливаем JDK для сборки проекта
+        # Устанавливает JDK для сборки проекта
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -41,7 +42,7 @@ jobs:
 
       - name: Add sec-passed label to PR
         if: success()
-        # Использует действие actions/github-script@v6 для выполнения JS кода в script:
+        # Использует действие actions/github-script@v6 для выполнения скрипта
         uses: actions/github-script@v6
         with:
           script: |
