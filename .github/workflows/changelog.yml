@@ -39,7 +39,7 @@ jobs:
           CURRENT_TIME=$(date '+%H:%M')
           CURRENT_DATE=$(date '+%Y.%m.%d')
           VERSION="${{ steps.version.outputs.current_version }}"
-          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${{ steps.branch.outputs.branch_name }}]"
+          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${{ steps.branch.outputs.branch_name }}]/n"
 
           if [ -f changelog.md ]; then
             TEMP_FILE=$(mktemp)
