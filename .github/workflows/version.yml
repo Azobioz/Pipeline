@@ -117,3 +117,10 @@ jobs:
             } catch (error) {
               console.log('Error adding label:', error)
             }
+
+      - name: Update docker compose version
+        run: |
+          VERSION=$(cat version | awk '{print $1}' | tr -d '[]')
+          
+          sed -i "s/__VERSION__/$VERSION/g" docker-compose.yml
+          
