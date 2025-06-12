@@ -1,6 +1,6 @@
 version: '3.8'
 services:
   yourproject:
-    image: azobioz/pipeline:v{{version}} 
+    image: azobioz/pipeline:v__VERSION__ 
     ports:
-      - "8080:8080"  
+      - "8080:8080"
