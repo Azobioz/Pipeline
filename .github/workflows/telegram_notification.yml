@@ -12,9 +12,8 @@ on:
 jobs:
   notify:
     name:  Notify in telegram
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true  
-
     steps:
       - name: Get branch names
         id: branch-names
