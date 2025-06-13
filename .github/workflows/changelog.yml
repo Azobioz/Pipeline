@@ -39,16 +39,15 @@ jobs:
           CURRENT_TIME=$(date '+%H:%M')
           CURRENT_DATE=$(date '+%Y.%m.%d')
           VERSION="${{ steps.version.outputs.current_version }}"
-          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${{ steps.branch.outputs.branch_name }}]/n"
+          BRANCH="${{ steps.branch.outputs.branch_name }}"
+          NEW_ENTRY="[${CURRENT_TIME} - ${CURRENT_DATE} ${VERSION} ${BRANCH}]"
 
-          if [ -f changelog.md ]; then
-            TEMP_FILE=$(mktemp)
-            echo -e "${NEW_ENTRY}" > "${TEMP_FILE}"
-            cat changelog.md >> "${TEMP_FILE}"
-            mv "${TEMP_FILE}" changelog.md
-          else
-            echo -e "${NEW_ENTRY}" > changelog.md
-          fi
+          
+          TEMP_FILE=$(mktemp)
+          echo "${NEW_ENTRY}" > "${TEMP_FILE}"
+          echo "---" >> "${TEMP_FILE}"
+          cat changelog.md >> "${TEMP_FILE}"
+          mv "${TEMP_FILE}" changelog.md
           
           git add changelog.md
 
