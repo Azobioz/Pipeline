@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: master 
           fetch-depth: 0  
 
       - name: Set up python
@@ -58,10 +59,9 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git checkout ${{ github.head_ref }}
           git add version version_log
-          git commit -m "[${{ steps.new-version.outputs.new_version }}] <-- [${{ steps.old-version.outputs.old_version }}] [${{ steps.new-version.outputs.timestamp }}] ${{ steps.update-type.outputs.type }} up"
-          git push origin ${{ github.head_ref }}
+          git commit -m "[${{ steps.new-version.outputs.new_version }}] <-- [${{ steps.old-version.outputs.old_version }}] [${{ steps.new-version.outputs.timestamp }}] ${{ steps.update-type.outputs.type }} up" || echo "No changes to commit"
+          git push origin master  
 
       - name: Creating label with new version
         uses: actions/github-script@v6
@@ -85,7 +85,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: azobioz/pipeline
+          images: ${{ secrets.DOCKER_USERNAME }}/pipeline
           tags: |
             type=raw,value=v${{ steps.new-version.outputs.new_version }},enable=${{ job.status == 'success' }}
 
@@ -102,7 +102,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-          repository: azobioz/pipeline
+          repository: ${{ secrets.DOCKER_USERNAME }}/pipeline
           readme-filepath: README.md
 
       - name: Add dockerhub label to PR
