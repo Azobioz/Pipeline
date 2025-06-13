@@ -1,18 +1,18 @@
 name: Telegram notification
 
 on:
-  pull_request:
-    types: [closed]
   workflow_run:
-    workflows: ["version"]
+    workflows: ["Update version"]  
     types: [completed]
     branches:
       - master
 
 jobs:
   notify:
-    name:  Notify in telegram
+    name: Notify in telegram
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'  
+
     steps:
       - name: Get branch names
         id: branch-names
@@ -23,7 +23,7 @@ jobs:
         id: current-time
         with:
           format: YYYY.MM.DD HH:mm:ss
-          utcOffset: "+03:00"  
+          utcOffset: "+03:00" 
 
       - name: Use current time
         env:
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout on release
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.workflow_run.head_sha }}  
 
       - name: Get current version
         id: version
@@ -86,20 +86,18 @@ jobs:
           document: changelog.md
           message: |           
             <b>Новый выпуск изменений</b>
-            <b>Проект</b>: <code>${{ github.event.repository.name }}</code>
-            <b>Версия</b>: <code>${{ steps.version.outputs.current_version }}</code>
+            <b>Проект</b>: <a href="https://github.com/${{ github.repository }}"><code>${{ github.event.repository.name }}</code></a>
+            <b>Версия</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
             <b>Дата</b>: <code>${{ steps.current-time.outputs.formattedTime }}</code>
             <b>Автор</b>: <a href="https://github.com/${{ github.event.pull_request.user.login }}">${{ github.event.pull_request.user.login }}</a>
             <b>Описание изменений:</b> ${{ github.event.pull_request.title }}
 
             <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}">${{ github.event.pull_request.number }}</a>
-            <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.current_version }}">${{ steps.version.outputs.current_version }}</a>
+            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
             
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
             <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.docker-tag.outputs.latest_tag }}</a>
             <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.docker-tag.outputs.latest_tag }}</a>
-            
-  
