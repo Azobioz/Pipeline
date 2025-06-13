@@ -10,9 +10,9 @@ jobs:
   notify:
     name: Notify in telegram
     runs-on: ubuntu-latest
-
+    if: github.event.workflow_run.conclusion == 'success'  
+    
     steps:
-
       - name: Get branch names
         id: branch-names
         uses: tj-actions/branch-names@v8
@@ -43,7 +43,8 @@ jobs:
         id: version
         run: |
           if [ -f version ]; then
-            echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
+            CURRENT_VERSION=$(cat version)
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           else
             echo "Error: version file not found, using default v1.0.0"
             echo "current_version=v1.0.0" >> $GITHUB_OUTPUT
@@ -68,13 +69,13 @@ jobs:
             echo "All tags: $ALL_TAGS" >> $GITHUB_STEP_SUMMARY
             LATEST_TAG=$(echo "$ALL_TAGS" | sort -V -r | head -n 1)
             if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
-              LATEST_TAG="${{ steps.version.outputs.current_version }}"
+              LATEST_TAG="v${{ steps.version.outputs.current_version }}"
               echo "No valid tag found starting with 'v', using version from file: $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
             else
               echo "Latest tag from Docker Hub (sorted): $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            LATEST_TAG="${{ steps.version.outputs.current_version }}"
+            LATEST_TAG="v${{ steps.version.outputs.current_version }}"
             echo "No tags found in Docker Hub or API error, using version from file: $LATEST_TAG" >> $GITHUB_STEP_SUMMARY
           fi
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -85,7 +86,7 @@ jobs:
       - name: Get PR details
         id: pr-details
         run: |
-          PR_NUMBER=$(echo "${{ github.event.workflow_run.pull_requests[0].number }}")
+          PR_NUMBER=$(echo "${{ github.event.workflow_run.pull_requests[0].number }}" || echo "")
           if [ -z "$PR_NUMBER" ]; then
             echo "pr_title=Unknown PR" >> $GITHUB_OUTPUT
             echo "author=Unknown" >> $GITHUB_OUTPUT
