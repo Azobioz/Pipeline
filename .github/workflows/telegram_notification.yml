@@ -65,7 +65,9 @@ jobs:
         id: version
         run: |
           if [ -f version ]; then
-            echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
+            CURRENT_VERSION=$(cat version)
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "File version found: $CURRENT_VERSION"
           else
             echo "Error: version file not found, using default v1.0.0"
             echo "current_version=v1.0.0" >> $GITHUB_OUTPUT
