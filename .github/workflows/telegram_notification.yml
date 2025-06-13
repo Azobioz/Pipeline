@@ -1,19 +1,18 @@
 name: Telegram notification
 
 on:
+  pull_request:
+    types: [closed]
   workflow_run:
-    workflows: ["Update version"]  
-    types: 
-      - completed
+    workflows: ["Update version"]
+    types: [completed]
     branches:
       - master
 
 jobs:
   notify:
-    name: Notify in telegram
+    name:  Notify in telegram
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
-    
     steps:
       - name: Get branch names
         id: branch-names
@@ -24,7 +23,7 @@ jobs:
         id: current-time
         with:
           format: YYYY.MM.DD HH:mm:ss
-          utcOffset: "+03:00" 
+          utcOffset: "+03:00"  
 
       - name: Use current time
         env:
@@ -38,19 +37,12 @@ jobs:
       - name: Checkout on release
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }} 
-          fetch-depth: 0  
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Get current version
         id: version
         run: |
-          if [ -f version ]; then
-            echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
-          else
-            echo "Error: version file not found, using default v1.0.0"
-            echo "current_version=v1.0.0" >> $GITHUB_OUTPUT
-          fi
-
+          echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
@@ -83,28 +75,8 @@ jobs:
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-
-      - name: Get PR details
-        id: pr-details
-        run: |
-          PR_NUMBER=$(echo "${{ github.event.workflow_run.pull_requests[0].number }}")
-          if [ -z "$PR_NUMBER" ]; then
-            echo "PR number not found, using default message"
-            echo "pr_title=Unknown PR" >> $GITHUB_OUTPUT
-            echo "author=Unknown" >> $GITHUB_OUTPUT
-            echo "pr_number=Unknown" >> $GITHUB_OUTPUT
-          else
-            PR_DATA=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
-            PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
-            AUTHOR=$(echo "$PR_DATA" | jq -r '.user.login')
-            echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
-            echo "author=$AUTHOR" >> $GITHUB_OUTPUT
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Send telegram message when PR
+      
+      - name: send telegram message when PR
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
@@ -113,15 +85,14 @@ jobs:
           document: changelog.md
           message: |           
             <b>Новый выпуск изменений</b>
-            <b>Проект</b>: <a href="https://github.com/${{ github.repository }}"><code>${{ github.event.repository.name }}</code></a>
-            <b>Версия</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
+            <b>Проект</b>: <code>${{ github.event.repository.name }}</code>
+            <b>Версия</b>: <code>${{ steps.version.outputs.current_version }}</code>
             <b>Дата</b>: <code>${{ steps.current-time.outputs.formattedTime }}</code>
-            <b>Автор</b>: <a href="https://github.com/${{ steps.pr-details.outputs.author }}">${{ steps.pr-details.outputs.author }}</a>
-            <b>Описание изменений:</b> ${{ steps.pr-details.outputs.pr_title }}
-
+            <b>Автор</b>: <a href="https://github.com/${{ github.event.pull_request.user.login }}">${{ github.event.pull_request.user.login }}</a>
+            <b>Описание изменений:</b> ${{ github.event.pull_request.title }}
             <b>Информация о Git-репозитории</b>
-            <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr-details.outputs.pr_number }}">${{ steps.pr-details.outputs.pr_number }}</a>
-            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
+            <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}">${{ github.event.pull_request.number }}</a>
+            <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.current_version }}">${{ steps.version.outputs.current_version }}</a>
             
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
