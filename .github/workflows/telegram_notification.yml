@@ -11,7 +11,7 @@ jobs:
   notify:
     name: Notify in telegram
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'  
+    if: github.event.workflow_run.conclusion == 'success' 
 
     steps:
       - name: Get branch names
@@ -24,7 +24,7 @@ jobs:
         with:
           format: YYYY.MM.DD HH:mm:ss
           utcOffset: "+03:00" 
-
+          
       - name: Use current time
         env:
           TIME: "${{ steps.current-time.outputs.time }}"
@@ -37,12 +37,18 @@ jobs:
       - name: Checkout on release
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}  
+          ref: ${{ github.event.workflow_run.head_sha }} 
+          fetch-depth: 0  
 
       - name: Get current version
         id: version
         run: |
-          echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
+          if [ -f version ]; then
+            echo "current_version=$(cat version)" >> $GITHUB_OUTPUT
+          else
+            echo "Error: version file not found, using default v1.0.0"
+            echo "current_version=v1.0.0" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
