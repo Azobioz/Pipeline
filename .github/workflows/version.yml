@@ -12,11 +12,11 @@ jobs:
     if: github.event.pull_request.merged == true  
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (master)
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: master 
+          ref: master
           fetch-depth: 0  
 
       - name: Set up python
@@ -47,7 +47,7 @@ jobs:
         run: |
           echo "${{ steps.update-type.outputs.type }}" | python version_up.py
 
-      - name: Get new version and temporary 
+      - name: Get new version and timestamp
         id: new-version
         run: |
           NEW_VERSION=$(cat version)
@@ -55,13 +55,28 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
-      - name: Commit of version changes
+      - name: Commit version changes to master
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           git add version version_log
           git commit -m "[${{ steps.new-version.outputs.new_version }}] <-- [${{ steps.old-version.outputs.old_version }}] [${{ steps.new-version.outputs.timestamp }}] ${{ steps.update-type.outputs.type }} up" || echo "No changes to commit"
-          git push origin master  
+          git push origin master
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0  
+
+      - name: Commit version changes to PR branch
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add version version_log
+          git commit -m "[${{ steps.new-version.outputs.new_version }}] <-- [${{ steps.old-version.outputs.old_version }}] [${{ steps.new-version.outputs.timestamp }}] ${{ steps.update-type.outputs.type }} up" || echo "No changes to commit"
+          git push origin ${{ github.event.pull_request.head.ref }}
 
       - name: Creating label with new version
         uses: actions/github-script@v6
