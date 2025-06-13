@@ -61,17 +61,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get current version
-        id: version
+      - name: Fetch latest version from repository
+        id: fetch-version
         run: |
-          if [ -f version ]; then
-            CURRENT_VERSION=$(cat version)
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            echo "File version found: $CURRENT_VERSION"
-          else
-            echo "Error: version file not found, using default v1.0.0"
-            echo "current_version=v1.0.0" >> $GITHUB_OUTPUT
-          fi
+          LATEST_VERSION=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/version?ref=master" | jq -r '.content' | base64 --decode)
+          echo "current_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Fetched version: $LATEST_VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Send telegram message
         uses: appleboy/telegram-action@master
@@ -82,14 +80,14 @@ jobs:
           message: |
             <b>Новый выпуск изменений</b>
             <b>Проект</b>: <a href="https://github.com/${{ github.repository_owner }}/Pipeline">Pipeline</a>
-            <b>Версия</b>: <a href="https://github.com/Azobioz/Pipeline/blob/master/version">${{ steps.version.outputs.current_version }}</a>
+            <b>Версия</b>: <a href="https://github.com/Azobioz/Pipeline/blob/master/version">${{ steps.fetch-version.outputs.current_version }}</a>
             <b>Автор</b>: <a href="https://github.com/${{ steps.pr-details.outputs.author }}">${{ steps.pr-details.outputs.author }}</a>
             <b>Описание изменений:</b> ${{ steps.pr-details.outputs.pr_title }}
             <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr-details.outputs.pr_number }}">${{ steps.pr-details.outputs.pr_number }}</a>
-            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version">${{ steps.version.outputs.current_version }}</a>
+            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version">${{ steps.fetch-version.outputs.current_version }}</a>
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
-            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.version.outputs.current_version }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.version.outputs.current_version }}</a>
+            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.fetch-version.outputs.current_version }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.fetch-version.outputs.current_version }}</a>
