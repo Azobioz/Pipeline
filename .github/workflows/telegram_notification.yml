@@ -1,8 +1,6 @@
 name: Telegram notification
 
 on:
-  pull_request:
-    types: [closed]
   workflow_run:
     workflows: ["Update version"]
     types: [completed]
