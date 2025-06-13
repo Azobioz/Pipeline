@@ -114,8 +114,8 @@ jobs:
             <b>Проект</b>: <a href="https://github.com/${{ github.repository }}"><code>${{ github.event.repository.name }}</code></a>
             <b>Версия</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
             <b>Дата</b>: <code>${{ steps.current-time.outputs.formattedTime }}</code>
-            <b>Автор</b>: <a href="https://github.com/${{ steps.pr-details.outputs.author }}">${{ steps.pr-details.outputs.author }}</a>
-            <b>Описание изменений:</b> ${{ steps.pr-details.outputs.pr_title }}
+            <b>Автор</b>: <a href="https://github.com/${{ github.event.pull_request.user.login }}">${{ github.event.pull_request.user.login }}</a>
+            <b>Описание изменений:</b> ${{ github.event.pull_request.title }}
 
             <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr-details.outputs.pr_number }}">${{ steps.pr-details.outputs.pr_number }}</a>
