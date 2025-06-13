@@ -79,13 +79,13 @@ jobs:
           format: html
           message: |
             <b>Новый выпуск изменений</b>
-            <b>Проект</b>: <a href="https://github.com/${{ github.repository_owner }}/Pipeline"><code>Pipeline</code></a>
-            <b>Версия</b>: <a href="https://github.com/Azobioz/Pipeline/blob/master/version"><code>${{ steps.version.outputs.current_version }}</code></a>
+            <b>Проект</b>: <a href="https://github.com/${{ github.repository_owner }}/Pipeline">Pipeline</a>
+            <b>Версия</b>: <a href="https://github.com/Azobioz/Pipeline/blob/master/version">${{ steps.version.outputs.current_version }}</a>
             <b>Автор</b>: <a href="https://github.com/${{ steps.pr-details.outputs.author }}">${{ steps.pr-details.outputs.author }}</a>
             <b>Описание изменений:</b> ${{ steps.pr-details.outputs.pr_title }}
             <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr-details.outputs.pr_number }}">${{ steps.pr-details.outputs.pr_number }}</a>
-            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
+            <b>GIT TAG</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version">${{ steps.version.outputs.current_version }}</a>
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
