@@ -14,23 +14,46 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3  
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
+      - name: Debug workflow_run event
+        run: |
+          echo "Full workflow_run event: ${{ toJson(github.event.workflow_run) }}"
+          echo "PRs in event: ${{ toJson(github.event.workflow_run.pull_requests) }}"
+          echo "Head SHA: ${{ github.event.workflow_run.head_sha }}"
+
       - name: Get PR details
         id: pr-details
         run: |
-          PR_NUMBER=$(echo "${{ github.event.workflow_run.pull_requests[0].number }}" || echo "")
+          PR_NUMBER="${{ github.event.workflow_run.pull_requests[0].number }}"
           if [ -z "$PR_NUMBER" ]; then
-            echo "pr_title=Unknown PR" >> $GITHUB_OUTPUT
-            echo "author=Unknown" >> $GITHUB_OUTPUT
-            echo "pr_number=Unknown" >> $GITHUB_OUTPUT
+            echo "PR number not found in workflow_run event. Attempting to fetch via commit."
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            PR_DATA=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/commits/$COMMIT_SHA/pulls")
+            PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // "Unknown"')
+            if [ "$PR_NUMBER" == "Unknown" ]; then
+              echo "No PR found for commit $COMMIT_SHA"
+              echo "pr_title=Unknown PR" >> $GITHUB_OUTPUT
+              echo "author=Unknown" >> $GITHUB_OUTPUT
+              echo "pr_number=Unknown" >> $GITHUB_OUTPUT
+            else
+              PR_DETAILS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+              PR_TITLE=$(echo "$PR_DETAILS" | jq -r '.title // "Unknown PR"')
+              AUTHOR=$(echo "$PR_DETAILS" | jq -r '.user.login // "Unknown"')
+              echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+              echo "author=$AUTHOR" >> $GITHUB_OUTPUT
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            fi
           else
-            PR_DATA=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
-            PR_TITLE=$(echo "$PR_DATA" | jq -r '.title // "Unknown PR"')
-            AUTHOR=$(echo "$PR_DATA" | jq -r '.user.login // "Unknown"')
+            PR_DETAILS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+            PR_TITLE=$(echo "$PR_DETAILS" | jq -r '.title // "Unknown PR"')
+            AUTHOR=$(echo "$PR_DETAILS" | jq -r '.user.login // "Unknown"')
             echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
             echo "author=$AUTHOR" >> $GITHUB_OUTPUT
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -60,13 +83,11 @@ jobs:
             <b>Версия</b>: <a href="https://github.com/${{ github.repository }}/blob/${{ github.event.workflow_run.head_sha }}/version"><code>${{ steps.version.outputs.current_version }}</code></a>
             <b>Автор</b>: <a href="https://github.com/${{ steps.pr-details.outputs.author }}">${{ steps.pr-details.outputs.author }}</a>
             <b>Описание изменений:</b> ${{ steps.pr-details.outputs.pr_title }}
-            
             <b>Информация о Git-репозитории</b>
             <b>GIT MR</b>: <a href="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr-details.outputs.pr_number }}">${{ steps.pr-details.outputs.pr_number }}</a>
             <b>GIT TAG</b>: <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.current_version }}">${{ steps.version.outputs.current_version }}</a>
-            
             <b>Информация о Docker-репозитории</b>
             <b>Владелец</b>: <a href="https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}">${{ secrets.DOCKER_USERNAME }}</a>
             <b>Название</b>: <a href="https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/pipeline">pipeline</a>
-            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.docker-tag.outputs.latest_tag }}</a>
-            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.docker-tag.outputs.latest_tag }}</a>
+            <b>Тег</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ steps.version.outputs.current_version }}</a>
+            <b>Полное имя</b>: <a href="https://hub.docker.com/repository/docker/${{ secrets.DOCKER_USERNAME }}/pipeline/tags">${{ secrets.DOCKER_USERNAME }}/pipeline:${{ steps.version.outputs.current_version }}</a>
