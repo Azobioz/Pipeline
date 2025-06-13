@@ -2,12 +2,14 @@ name: Update version
 
 on:
   pull_request:
+    types: [closed]  
     branches:
       - master
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true  
 
     steps:
       - name: Checkout repo
@@ -117,5 +119,3 @@ jobs:
             } catch (error) {
               console.log('Error adding label:', error)
             }
-
-          
