@@ -41,7 +41,7 @@ jobs:
           if [ -z "$PR_NUMBER" ]; then
             echo "No PR found, using head_sha commits"
             HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-            COMMITS=$(git log --pretty=format:'%cd %s' --date=format:'%H:%M - %d.%m.%Y' $HEAD_SHA -1)
+            COMMITS=$(git log --pretty=format:'%cd %s' --date=format:'%H:%M:%S - %d.%m.%Y' $HEAD_SHA -1)
           else
             COMMITS_DATA=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/commits")
@@ -51,33 +51,33 @@ jobs:
 
       - name: Update changelog.md for master
         run: |
-          CURRENT_TIME=$(date '+%H:%M')
+          CURRENT_TIME=$(date '+%H:%M:%S')
           CURRENT_DATE=$(date '+%d.%m.%Y')
           VERSION="${{ steps.version.outputs.current_version }}"
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           COMMITS="${{ steps.commits.outputs.commits }}"
 
           TEMP_FILE=$(mktemp)
-          echo "Changelog" > "${TEMP_FILE}"
-          echo "" >> "${TEMP_FILE}" 
+          echo "# Changelog" > "${TEMP_FILE}"
+          echo "" >> "${TEMP_FILE}"  
 
           LATEST_DATE=$(echo "$COMMITS" | head -n 1 | cut -d' ' -f1)
           if [ -z "$LATEST_DATE" ]; then
             LATEST_DATE="${CURRENT_TIME} - ${CURRENT_DATE}"
           fi
-          NEW_ENTRY="[${LATEST_DATE} ${VERSION} ${BRANCH}]"
+          NEW_ENTRY="## [${VERSION}] - ${LATEST_DATE}"
+
           CHANGES=$(echo "$COMMITS" | cut -d' ' -f2- | sed 's/^/- /; s/$/\n/' | sed '/^-$/d' | sort -u)
           if [ -z "$CHANGES" ]; then
             CHANGES="- No changes specified"
           fi
 
           echo "${NEW_ENTRY}" >> "${TEMP_FILE}"
-          echo "---" >> "${TEMP_FILE}"
           echo "${CHANGES}" >> "${TEMP_FILE}"
+          echo "" >> "${TEMP_FILE}" 
 
           if [ -f changelog.md ]; then
-            echo "" >> "${TEMP_FILE}"
-            cat changelog.md >> "${TEMP_FILE}"
+            cat changelog.md | sed '1,/^# Changelog$/d' >> "${TEMP_FILE}" 
           fi
 
           mv "${TEMP_FILE}" changelog.md
@@ -99,33 +99,34 @@ jobs:
 
       - name: Update changelog.md for PR branch
         run: |
-          CURRENT_TIME=$(date '+%H:%M')
+          CURRENT_TIME=$(date '+%H:%M:%S')
           CURRENT_DATE=$(date '+%d.%m.%Y')
           VERSION="${{ steps.version.outputs.current_version }}"
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           COMMITS="${{ steps.commits.outputs.commits }}"
 
           TEMP_FILE=$(mktemp)
-          echo "Changelog" > "${TEMP_FILE}"
-          echo "" >> "${TEMP_FILE}" 
+          echo "# Changelog" > "${TEMP_FILE}"
+          echo "" >> "${TEMP_FILE}"  
 
           LATEST_DATE=$(echo "$COMMITS" | head -n 1 | cut -d' ' -f1)
           if [ -z "$LATEST_DATE" ]; then
             LATEST_DATE="${CURRENT_TIME} - ${CURRENT_DATE}"
           fi
-          NEW_ENTRY="[${LATEST_DATE} ${VERSION} ${BRANCH}]"
+          NEW_ENTRY="## [${VERSION}] - ${LATEST_DATE}"
+
           CHANGES=$(echo "$COMMITS" | cut -d' ' -f2- | sed 's/^/- /; s/$/\n/' | sed '/^-$/d' | sort -u)
           if [ -z "$CHANGES" ]; then
             CHANGES="- No changes specified"
           fi
 
           echo "${NEW_ENTRY}" >> "${TEMP_FILE}"
-          echo "---" >> "${TEMP_FILE}"
           echo "${CHANGES}" >> "${TEMP_FILE}"
+          echo "" >> "${TEMP_FILE}"  
 
+          # Добавляем старые записи, если они есть
           if [ -f changelog.md ]; then
-            echo "" >> "${TEMP_FILE}"  
-            cat changelog.md >> "${TEMP_FILE}"
+            cat changelog.md | sed '1,/^# Changelog$/d' >> "${TEMP_FILE}" 
           fi
 
           mv "${TEMP_FILE}" changelog.md
