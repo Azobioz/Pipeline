@@ -57,7 +57,6 @@ jobs:
           COMMITS="${{ steps.commits.outputs.commits }}"
 
           TEMP_FILE=$(mktemp)
-          echo "Changelog" > "${TEMP_FILE}"
           echo "" >> "${TEMP_FILE}"
           echo "${NEW_ENTRY}" >> "${TEMP_FILE}"
           echo "---" >> "${TEMP_FILE}"
