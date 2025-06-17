@@ -34,15 +34,18 @@ jobs:
         run: |
           echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
 
-      - name: Get commits since last update
+      - name: Get PR commits
         id: commits
         run: |
-          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-          LAST_COMMIT=$(git log --pretty=format:'%H' -1 || echo "")
-          if [ -z "$LAST_COMMIT" ] || [ ! -f changelog.md ]; then
-            COMMITS=$(git log --pretty=format:'%cd %s' --date=format:'%H:%M - %d.%m.%Y' $HEAD_SHA)
+          PR_NUMBER="${{ github.event.workflow_run.pull_requests[0].number }}"
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found, using head_sha commits"
+            HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+            COMMITS=$(git log --pretty=format:'%cd %s' --date=format:'%H:%M - %d.%m.%Y' $HEAD_SHA -1)
           else
-            COMMITS=$(git log --pretty=format:'%cd %s' --date=format:'%H:%M - %d.%m.%Y' $LAST_COMMIT..$HEAD_SHA)
+            COMMITS_DATA=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/commits")
+            COMMITS=$(echo "$COMMITS_DATA" | jq -r '.[] | [.commit.committer.date, .commit.message] | join(" ")' | sed 's/T[0-9:]*Z/ /' | sed 's/^\([0-9:]*\) /\1 - /' | sed 's/ - / /')
           fi
           echo "commits=$COMMITS" >> $GITHUB_OUTPUT
 
@@ -73,7 +76,7 @@ jobs:
           echo "${CHANGES}" >> "${TEMP_FILE}"
 
           if [ -f changelog.md ]; then
-            echo "" >> "${TEMP_FILE}"  
+            echo "" >> "${TEMP_FILE}" 
             cat changelog.md >> "${TEMP_FILE}"
           fi
 
@@ -84,71 +87,4 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git commit -m "Update changelog: [${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.version.outputs.current_version }} ${{ steps.branch.outputs.branch_name }}]" || echo "No changes to commit"
-          git push origin master
-
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.workflow_run.head_branch }}
-          fetch-depth: 0
-
-      - name: Update changelog.md for PR branch
-        run: |
-          CURRENT_TIME=$(date '+%H:%M')
-          CURRENT_DATE=$(date '+%d.%m.%Y')
-          VERSION="${{ steps.version.outputs.current_version }}"
-          BRANCH="${{ steps.branch.outputs.branch_name }}"
-          COMMITS="${{ steps.commits.outputs.commits }}"
-
-          TEMP_FILE=$(mktemp)
-          echo "Changelog" > "${TEMP_FILE}"
-          echo "" >> "${TEMP_FILE}"  
-
-          LATEST_DATE=$(echo "$COMMITS" | head -n 1 | cut -d' ' -f1)
-          if [ -z "$LATEST_DATE" ]; then
-            LATEST_DATE="${CURRENT_TIME} - ${CURRENT_DATE}"
-          fi
-          NEW_ENTRY="[${LATEST_DATE} ${VERSION} ${BRANCH}]"
-          CHANGES=$(echo "$COMMITS" | cut -d' ' -f2- | sed 's/^/- /; s/$/\n/' | sed '/^-$/d' | sort -u)
-          if [ -z "$CHANGES" ]; then
-            CHANGES="- No changes specified"
-          fi
-
-          echo "${NEW_ENTRY}" >> "${TEMP_FILE}"
-          echo "---" >> "${TEMP_FILE}"
-          echo "${CHANGES}" >> "${TEMP_FILE}"
-
-          if [ -f changelog.md ]; then
-            echo "" >> "${TEMP_FILE}"  
-            cat changelog.md >> "${TEMP_FILE}"
-          fi
-
-          mv "${TEMP_FILE}" changelog.md
-          git add changelog.md
-
-      - name: Commit changes to PR branch
-        run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git commit -m "Update changelog: [${CURRENT_TIME} - ${CURRENT_DATE} ${{ steps.version.outputs.current_version }} ${{ steps.branch.outputs.branch_name }}]" || echo "No changes to commit"
-          git push origin ${{ github.event.workflow_run.head_branch }}
-
-      - name: Add changelog label
-        uses: actions/github-script@v6
-        with:
-          script: |
-            try {
-              const prs = context.payload.workflow_run.pull_requests
-              if (prs && prs.length > 0) {
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prs[0].number,
-                  labels: ['changelog']
-                })
-              }
-            } catch (error) {
-              console.log('Error adding label:', error)
-            }
+          git commit -m "
